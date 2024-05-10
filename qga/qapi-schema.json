@@ -1799,7 +1799,7 @@
   'returns': ['GuestCpuStats']
 }
 
-### WISPER ###
+##
 # @guest-set-computer-name:
 #
 # Set hostname of the guest.
