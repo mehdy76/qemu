@@ -33,7 +33,8 @@
         'guest-get-time',
         'guest-set-vcpus',
         'guest-sync',
-        'guest-sync-delimited' ],
+        'guest-sync-delimited',
+        'guest-set-computer-name' ],
     # Types and commands with undocumented members:
     'documentation-exceptions': [
         'GuestNVMeSmart' ] } }
@@ -1799,16 +1800,12 @@
   'returns': ['GuestCpuStats']
 }
 
+
 ##
 # @guest-set-computer-name:
 #
-# Set hostname of the guest.
-#
-# Returns: 1 on success, 0 on failure.
-#
-#
+# @name: new computer name
 ##
-
 { 'command': 'guest-set-computer-name',
   'data': { '*name': 'str' },
   'returns': 'int' }
