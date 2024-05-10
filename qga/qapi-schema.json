@@ -1798,3 +1798,18 @@
 { 'command': 'guest-get-cpustats',
   'returns': ['GuestCpuStats']
 }
+
+### WISPER ###
+# @guest-set-computer-name:
+#
+# Set hostname of the guest.
+#
+# Returns: 1 on success, 0 on failure.
+#
+#
+##
+
+{ 'command': 'guest-set-computer-name',
+  'data': { '*name': 'str' },
+  'returns': 'int' }
+

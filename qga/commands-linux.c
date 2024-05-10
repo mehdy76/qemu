@@ -17,6 +17,9 @@
 #include "cutils.h"
 #include <mntent.h>
 #include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #if defined(CONFIG_FSFREEZE) || defined(CONFIG_FSTRIM)
 static int dev_major_minor(const char *devpath,
@@ -284,3 +287,16 @@ int qmp_guest_fsfreeze_do_thaw(Error **errp)
     return i;
 }
 #endif /* CONFIG_FSFREEZE */
+
+/* wisper code -- linux rename computer*/
+
+int rename_computer(const char *newName) {
+    char command[256];
+    sprintf(command, "/usr/bin/hostnamectl set-hostname %s", newName);
+    int ret = system(command);
+    if (ret == -1) {
+        printf("Error setting hostname\n");
+        return 0;
+    }
+    return 1;
+}
