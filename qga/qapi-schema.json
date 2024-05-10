@@ -18,10 +18,13 @@
 
 # Lists with items allowed to permit QAPI rule violations; think twice
 # before you add to them!
+
 { 'pragma': {
     # Types whose member names may use '_'
     'member-name-exceptions': [
-        'GuestAgentInfo'
+        'GuestAgentInfo',
+        'guest-join-domain',
+        'isLdap'
     ],
     # Commands allowed to return a non-dictionary:
     'command-returns-exceptions': [
@@ -35,7 +38,9 @@
         'guest-sync',
         'guest-sync-delimited',
         'guest-set-computer-name',
-        'guest-reboot-os' ],
+        'guest-reboot-os',
+        'guest-join-domain',
+        'isLdap' ],
     # Types and commands with undocumented members:
     'documentation-exceptions': [
         'GuestNVMeSmart' ] } }
@@ -1818,3 +1823,16 @@
 { 'command': 'guest-reboot-os',
   'returns': 'int' }  
 
+  ##
+  # @guest-join-domain:
+  #
+  # @isLdap: true if LDAP domain else false
+  # @domainName: domain name to be joined
+  # @domainNetBiosName: domain net bios name to be joined
+  # @domainUserName: domain user name, to make request
+  # @domainPassword: domain user password
+  # @domainOU: OU to be joined
+  ##
+  { 'command': 'guest-join-domain',
+    'data': { 'isLdap': 'bool', '*domainName': 'str', '*domainNetBiosName': 'str', '*domainUserName': 'str', '*domainPassword': 'str', '*domainOU': 'str' },
+    'returns': 'int' }

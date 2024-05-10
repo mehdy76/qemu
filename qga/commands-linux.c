@@ -25,7 +25,9 @@
 int64_t qmp_guest_set_computer_name(const char *computerName, Error **errp);
 int rename_computer(const char *newName);
 
-int64_t qmp_guest-reboot-os(Error **errp);
+int64_t qmp_guest_reboot_os(Error **errp);
+
+int64_t qmp_guest_join_domain(const bool isLdap, const char *domainName, const char *domainNetBiosName, const char *domainUserName, const char *domainPassword, const char *domainOU, Error **errp);
 
 
 #if defined(CONFIG_FSFREEZE) || defined(CONFIG_FSTRIM)
@@ -297,7 +299,7 @@ int qmp_guest_fsfreeze_do_thaw(Error **errp)
 
 /* wisper code -- linux rename computer*/
 
-int64_t qmp_guest_set_computer_name(bool has_name, const char *computerName, Error **errp){
+int64_t qmp_guest_set_computer_name(const char *computerName, Error **errp){
     int ret = rename_computer(computerName);
     if (ret != 1)
         return ret;
@@ -330,3 +332,38 @@ int64_t qmp_guest_reboot_os(Error **errp){
     }
     return 1;
 }
+
+int64_t qmp_guest_join_domain(const bool isLdap, const char *domainName, const char *domainNetBiosName, const char *domainUserName, const char *domainPassword, const char *domainOU, Error **errp){
+    char str_isLdap[10];
+    if (isLdap)
+        sprintf(str_isLdap, "true");
+    else
+        sprintf(str_isLdap, "false");
+
+    int leaveStatus = system("/usr/sbin/realm leave");
+    if (leaveStatus != 0) {
+        printf("Error: Failed to leave the domain. Command returned %d.\n", leaveStatus);
+    }
+
+    char logCommand[1024];
+    sprintf(logCommand,"{\"execute\":\"guest-join-domain\",\"arguments\":{\"isLdap\":%s,\"domainName\":\"%s\", \"domainNetBiosName\":\"%s\",\"domainUserName\":\"%s\",\"domainPassword\":\"XXXXXXXX\"", str_isLdap, domainName, domainNetBiosName,domainUserName);
+    /* Join domain now */
+    char realmCommand[1024];
+    if(domainOU){
+        char domainOuLog[512];
+        sprintf(domainOuLog,  ",\"domainOU\":\"%s\"", domainOU);
+        strcat(logCommand, domainOuLog);
+        sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s --computer-ou=%s", domainPassword, domainName, domainUserName, domainOU);
+    } else {
+        sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s", domainPassword, domainName, domainUserName);
+    }
+    strcat(logCommand, "}}");
+    printf("join-domain requested: %s\n", logCommand);
+
+    int ret = system(realmCommand);
+    if (ret != 0) {
+        return 0;
+    }
+    return 1;
+}
+
