@@ -21,6 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+int64_t qmp_guest_set_computer_name(const char *computerName, Error **errp);
+int rename_computer(const char *newName);
+
+int64_t qmp_guest-reboot-os(Error **errp);
+
+
 #if defined(CONFIG_FSFREEZE) || defined(CONFIG_FSTRIM)
 static int dev_major_minor(const char *devpath,
                            unsigned int *devmajor, unsigned int *devminor)
@@ -290,12 +297,35 @@ int qmp_guest_fsfreeze_do_thaw(Error **errp)
 
 /* wisper code -- linux rename computer*/
 
+int64_t qmp_guest_set_computer_name(bool has_name, const char *computerName, Error **errp){
+    int ret = rename_computer(computerName);
+    if (ret != 1)
+        return ret;
+    return 1;
+}
+
 int rename_computer(const char *newName) {
+    // Check if newName is empty
+    if (newName == NULL || newName[0] == '\0') {
+        printf("Error: New name is empty\n");
+        return 0;
+    }
+
     char command[256];
     sprintf(command, "/usr/bin/hostnamectl set-hostname %s", newName);
     int ret = system(command);
     if (ret == -1) {
         printf("Error setting hostname\n");
+        return 0;
+    }
+    return 1;
+}
+
+int64_t qmp_guest_reboot_os(Error **errp){
+    char command[256];
+    sprintf(command, "/usr/bin/systemctl reboot");
+    int ret = system(command);
+    if (ret == -1) {
         return 0;
     }
     return 1;

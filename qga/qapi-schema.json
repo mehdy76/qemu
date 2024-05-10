@@ -34,7 +34,8 @@
         'guest-set-vcpus',
         'guest-sync',
         'guest-sync-delimited',
-        'guest-set-computer-name' ],
+        'guest-set-computer-name',
+        'guest-reboot-os' ],
     # Types and commands with undocumented members:
     'documentation-exceptions': [
         'GuestNVMeSmart' ] } }
@@ -1809,4 +1810,11 @@
 { 'command': 'guest-set-computer-name',
   'data': { '*name': 'str' },
   'returns': 'int' }
+
+##
+# @guest-reboot-os:
+#
+##
+{ 'command': 'guest-reboot-os',
+  'returns': 'int' }  
 
