@@ -334,6 +334,9 @@ int64_t qmp_guest_reboot_os(Error **errp){
 }
 
 int64_t qmp_guest_join_domain(const bool isLdap, const char *domainName, const char *domainNetBiosName, const char *domainUserName, const char *domainPassword, const char *domainOU, Error **errp){
+    /* example domain junction command: 
+    virsh qemu-agent-command --timeout 300 vmName '{"execute":"guest-join-domain","arguments":{"isLdap":false,"domainName":"wsp.corp","domainNetBiosName":"wsp.corp","domainUserName":"user","domainPassword":"password"}}'
+    */
     char str_isLdap[10];
     if (isLdap)
         sprintf(str_isLdap, "true");
@@ -345,21 +348,28 @@ int64_t qmp_guest_join_domain(const bool isLdap, const char *domainName, const c
         printf("Error: Failed to leave the domain. Command returned %d.\n", leaveStatus);
     }
 
-    char logCommand[1024];
-    sprintf(logCommand,"{\"execute\":\"guest-join-domain\",\"arguments\":{\"isLdap\":%s,\"domainName\":\"%s\", \"domainNetBiosName\":\"%s\",\"domainUserName\":\"%s\",\"domainPassword\":\"XXXXXXXX\"", str_isLdap, domainName, domainNetBiosName,domainUserName);
+    /* char logCommand[1024]; */
+    /* sprintf(logCommand,"{\"execute\":\"guest-join-domain\",\"arguments\":{\"isLdap\":%s,\"domainName\":\"%s\", \"domainNetBiosName\":\"%s\",\"domainUserName\":\"%s\",\"domainPassword\":\"XXXXXXXX\"", str_isLdap, domainName, domainNetBiosName,domainUserName); */ 
     /* Join domain now */
+    char logCommand[1024];
+    sprintf (logCommand, "Joining domain with theses parameters: LDAP: %s - domainName: %s - netBiosName: %s - domainUserName: %s - domainPassword: XXXXXX - domainOU: %s", str_isLdap, domainName, domainNetBiosName,domainUserName, domainOU );
+    printf("%s\n", logCommand);
+
     char realmCommand[1024];
     if(domainOU){
-        char domainOuLog[512];
-        sprintf(domainOuLog,  ",\"domainOU\":\"%s\"", domainOU);
-        strcat(logCommand, domainOuLog);
-        sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s --computer-ou=%s", domainPassword, domainName, domainUserName, domainOU);
+        if (isLdap){
+            sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s --use-ldaps -U %s --computer-ou=%s", domainPassword, domainName, domainUserName, domainOU);
+        } else {
+            sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s --computer-ou=%s", domainPassword, domainName, domainUserName, domainOU);
+        }
     } else {
-        sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s", domainPassword, domainName, domainUserName);
+        if (isLdap){
+            sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s --use-ldaps -U %s", domainPassword, domainName, domainUserName);
+        } else {
+            sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s", domainPassword, domainName, domainUserName);
+        }        
+        
     }
-    strcat(logCommand, "}}");
-    printf("join-domain requested: %s\n", logCommand);
-
     int ret = system(realmCommand);
     if (ret != 0) {
         return 0;
