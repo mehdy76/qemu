@@ -645,6 +645,11 @@ end:
 static gboolean channel_event_cb(GIOCondition condition, gpointer data)
 {
     GAState *s = data;
+    
+    //Fix for Mehmet, hide domain password when guest-join-domain is called
+    const char *joinDomainCommand = "guest-join-domain";
+    char *ptr_isJoinDomainCmd;
+
     gchar buf[QGA_READ_COUNT_DEFAULT + 1];
     gsize count;
     GIOStatus status = ga_channel_read(s->channel, buf, QGA_READ_COUNT_DEFAULT, &count);
@@ -655,8 +660,15 @@ static gboolean channel_event_cb(GIOCondition condition, gpointer data)
         return false;
     case G_IO_STATUS_NORMAL:
         buf[count] = 0;
-        g_debug("read data, count: %d, data: %s", (int)count, buf);
-        json_message_parser_feed(&s->parser, (char *)buf, (int)count);
+        //If joindomain, hide log
+        ptr_isJoinDomainCmd = strstr(buf, joinDomainCommand);
+         if (ptr_isJoinDomainCmd) {
+            g_debug("read data, count: %d. Not printing data, one, or more, arguments provided for command need to be crypted (command %s)", (int)count, joinDomainCommand);
+            json_message_parser_feed(&s->parser, (char *)buf, (int)count);           
+         }else {
+            g_debug("read data, count: %d, data: %s", (int)count, buf);
+            json_message_parser_feed(&s->parser, (char *)buf, (int)count);
+         }
         break;
     case G_IO_STATUS_EOF:
         g_debug("received EOF");
