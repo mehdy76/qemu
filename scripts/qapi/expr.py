@@ -389,6 +389,11 @@ def check_type_implicit(value: Optional[object],
         key_source = "%s member '%s'" % (source, key)
         if key.startswith('*'):
             key = key[1:]
+
+        ## escape if not permissive
+        if not permissive:
+            permissive = key in info.pragma.member_name_exceptions        
+            
         check_name_lower(key, info, key_source,
                          permit_upper=permissive,
                          permit_underscore=permissive)
