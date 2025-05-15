@@ -309,7 +309,7 @@ int64_t qmp_guest_set_computer_name(const char *computerName, Error **errp){
 int rename_computer(const char *newName) {
     // Check if newName is empty
     if (newName == NULL || newName[0] == '\0') {
-        printf("Error: New name is empty\n");
+        g_debug("Error: New name is empty");
         return 0;
     }
 
@@ -317,9 +317,10 @@ int rename_computer(const char *newName) {
     sprintf(command, "/usr/bin/hostnamectl set-hostname %s", newName);
     int ret = system(command);
     if (ret == -1) {
-        printf("Error setting hostname\n");
+        g_debug("Error setting hostname");
         return 0;
     }
+    g_debug("Hostname set to %s", newName);
     return 1;
 }
 
@@ -328,8 +329,10 @@ int64_t qmp_guest_reboot_os(Error **errp){
     sprintf(command, "/usr/bin/systemctl reboot");
     int ret = system(command);
     if (ret == -1) {
+        g_debug("Error: Failed to execute system reboot command");
         return 0;
     }
+    g_debug("System reboot command executed successfully");
     return 1;
 }
 
@@ -345,35 +348,41 @@ int64_t qmp_guest_join_domain(const bool isLdap, const char *domainName, const c
 
     int leaveStatus = system("/usr/sbin/realm leave");
     if (leaveStatus != 0) {
-        printf("Error: Failed to leave the domain. Command returned %d.\n", leaveStatus);
+        g_debug("Error: Failed to leave the domain. Command returned %d.\n", leaveStatus);
     }
 
     /* char logCommand[1024]; */
     /* sprintf(logCommand,"{\"execute\":\"guest-join-domain\",\"arguments\":{\"isLdap\":%s,\"domainName\":\"%s\", \"domainNetBiosName\":\"%s\",\"domainUserName\":\"%s\",\"domainPassword\":\"XXXXXXXX\"", str_isLdap, domainName, domainNetBiosName,domainUserName); */ 
     /* Join domain now */
-    char logCommand[1024];
+    char logCommand[4096];
     sprintf (logCommand, "Joining domain with theses parameters: LDAP: %s - domainName: %s - netBiosName: %s - domainUserName: %s - domainPassword: XXXXXX - domainOU: %s", str_isLdap, domainName, domainNetBiosName,domainUserName, domainOU );
-    printf("%s\n", logCommand);
+    g_debug("%s\n", logCommand);
 
     char realmCommand[1024];
     if(domainOU){
         if (isLdap){
             sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s --use-ldaps -U %s --computer-ou=%s", domainPassword, domainName, domainUserName, domainOU);
+            g_debug("Running this command: /usr/bin/printf 'XXXXXX' | /usr/sbin/realm join %s --use-ldaps -U %s --computer-ou=%s", domainName, domainUserName, domainOU);
         } else {
             sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s --computer-ou=%s", domainPassword, domainName, domainUserName, domainOU);
+            g_debug("Running this command: /usr/bin/printf 'XXXXXX' | /usr/sbin/realm join %s -U %s --computer-ou=%s", domainName, domainUserName, domainOU);
         }
     } else {
         if (isLdap){
             sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s --use-ldaps -U %s", domainPassword, domainName, domainUserName);
+            g_debug("Running this command: /usr/bin/printf 'XXXXXX' | /usr/sbin/realm join %s --use-ldaps -U %s", domainName, domainUserName);
         } else {
             sprintf(realmCommand, "/usr/bin/printf '%s' | /usr/sbin/realm join %s -U %s", domainPassword, domainName, domainUserName);
+            g_debug("Running this command: /usr/bin/printf 'XXXXXX' | /usr/sbin/realm join %s -U %s", domainName, domainUserName);
         }        
         
     }
     int ret = system(realmCommand);
     if (ret != 0) {
+        g_debug("Error: Failed to join the domain. Command returned %d.\n", ret);
         return 0;
     }
+    g_debug("Successfully joined the domain %s with netbios name %s\n", domainName, domainNetBiosName);
     return 1;
 }
 
