@@ -5527,6 +5527,8 @@
 #     Non-standard, but default.  Do not set to 'off' when using
 #     'qemu-img convert' with subformat=dynamic.
 #
+# @preallocation: Preallocation mode for the new image (since 9.x)
+#
 # Since: 2.12
 ##
 { 'struct': 'BlockdevCreateOptionsVhdx',
@@ -5535,7 +5537,8 @@
             '*log-size':            'size',
             '*block-size':          'size',
             '*subformat':           'BlockdevVhdxSubformat',
-            '*block-state-zero':    'bool' } }
+            '*block-state-zero':    'bool',
+            '*preallocation':       'PreallocMode' } }
 
 ##
 # @BlockdevVpcSubformat:

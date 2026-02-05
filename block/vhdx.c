@@ -1703,7 +1703,7 @@ static int coroutine_fn GRAPH_UNLOCKED
 vhdx_create_bat(BlockBackend *blk, BDRVVHDXState *s,
                 uint64_t image_size, VHDXImageType type,
                 bool use_zero_blocks, uint64_t file_offset,
-                uint32_t length, Error **errp)
+                uint32_t length, PreallocMode prealloc, Error **errp)
 {
     int ret = 0;
     uint64_t data_file_offset;
@@ -1725,14 +1725,14 @@ vhdx_create_bat(BlockBackend *blk, BDRVVHDXState *s,
     if (type == VHDX_TYPE_DYNAMIC) {
         /* All zeroes, so we can just extend the file - the end of the BAT
          * is the furthest thing we have written yet */
-        ret = blk_co_truncate(blk, data_file_offset, false, PREALLOC_MODE_OFF,
+        ret = blk_co_truncate(blk, data_file_offset, false, prealloc,
                               0, errp);
         if (ret < 0) {
             goto exit;
         }
     } else if (type == VHDX_TYPE_FIXED) {
         ret = blk_co_truncate(blk, data_file_offset + image_size, false,
-                              PREALLOC_MODE_OFF, 0, errp);
+                              prealloc, 0, errp);
         if (ret < 0) {
             goto exit;
         }
@@ -1796,7 +1796,7 @@ vhdx_create_new_region_table(BlockBackend *blk, uint64_t image_size,
                              uint32_t block_size, uint32_t sector_size,
                              uint32_t log_size, bool use_zero_blocks,
                              VHDXImageType type, uint64_t *metadata_offset,
-                             Error **errp)
+                             PreallocMode prealloc, Error **errp)
 {
     int ret = 0;
     uint32_t offset = 0;
@@ -1865,7 +1865,7 @@ vhdx_create_new_region_table(BlockBackend *blk, uint64_t image_size,
     /* The region table gives us the data we need to create the BAT,
      * so do that now */
     ret = vhdx_create_bat(blk, s, image_size, type, use_zero_blocks,
-                          bat_file_offset, bat_length, errp);
+                          bat_file_offset, bat_length, prealloc, errp);
     if (ret < 0) {
         goto exit;
     }
@@ -1922,6 +1922,7 @@ vhdx_co_create(BlockdevCreateOptions *opts, Error **errp)
     uint64_t signature;
     uint64_t metadata_offset;
     bool use_zero_blocks = false;
+    PreallocMode prealloc = PREALLOC_MODE_OFF;
 
     gunichar2 *creator = NULL;
     glong creator_items;
@@ -1957,8 +1958,16 @@ vhdx_co_create(BlockdevCreateOptions *opts, Error **errp)
         use_zero_blocks = vhdx_opts->block_state_zero;
     }
 
+    if (vhdx_opts->has_preallocation) {
+        prealloc = vhdx_opts->preallocation;
+    }
+
     if (!vhdx_opts->has_subformat) {
-        vhdx_opts->subformat = BLOCKDEV_VHDX_SUBFORMAT_DYNAMIC;
+        if (prealloc == PREALLOC_MODE_FULL || prealloc == PREALLOC_MODE_FALLOC) {
+            vhdx_opts->subformat = BLOCKDEV_VHDX_SUBFORMAT_FIXED;
+        } else {
+            vhdx_opts->subformat = BLOCKDEV_VHDX_SUBFORMAT_DYNAMIC;
+        }
     }
 
     switch (vhdx_opts->subformat) {
@@ -2049,7 +2058,7 @@ vhdx_co_create(BlockdevCreateOptions *opts, Error **errp)
     /* Creates (D),(E),(G) explicitly. (F) created as by-product */
     ret = vhdx_create_new_region_table(blk, image_size, block_size, 512,
                                        log_size, use_zero_blocks, image_type,
-                                       &metadata_offset, errp);
+                                       &metadata_offset, prealloc, errp);
     if (ret < 0) {
         goto delete_and_exit;
     }
@@ -2240,6 +2249,11 @@ static QemuOptsList vhdx_create_opts = {
            .help = "Force use of payload blocks of type 'ZERO'. "
                    "Non-standard, but default.  Do not set to 'off' when "
                    "using 'qemu-img convert' with subformat=dynamic."
+       },
+       {
+           .name = BLOCK_OPT_PREALLOC,
+           .type = QEMU_OPT_STRING,
+           .help = "Preallocation mode (allowed values: off, falloc, full)"
        },
        { NULL }
     }
